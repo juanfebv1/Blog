@@ -1,5 +1,5 @@
 from rest_framework.viewsets import ModelViewSet
-from .serializers import PostSerializer, LikeSerializer, CommentSerializer
+from .serializers import PostSerializer, LikeSerializer
 from .models import Post, Like, Comment
 from .permissions import PostPermissions
 from .filters import PostAccessFilter
@@ -68,15 +68,17 @@ class LikeViewSet(ModelViewSet):
         return Like.objects.filter(post__in=accesible_posts).select_related('post', 'user')
     
 
-class CommentViewSet(ModelViewSet):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['user', 'post']
+        
+
+# class CommentViewSet(ModelViewSet):
+#     queryset = Comment.objects.all()
+#     serializer_class = CommentSerializer
+#     filter_backends = [DjangoFilterBackend]
+#     filterset_fields = ['user', 'post']
     
     
-    def get_queryset(self):
-        accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
-        return Comment.objects.filter(post__in=accesible_posts).select_related('post', 'user')
+#     def get_queryset(self):
+#         accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
+#         return Comment.objects.filter(post__in=accesible_posts).select_related('post', 'user')
 
     
