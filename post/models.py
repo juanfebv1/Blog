@@ -32,4 +32,4 @@ class Comment(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')
     comment = models.TextField()
     commented_at = models.DateTimeField(auto_now_add=True)
-    last_update = models.DateTimeField(default=commented_at)
+

@@ -32,7 +32,7 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
-    username = models.CharField(_('username'), null=False, blank=False)
+    username = models.CharField(_('username'), null=False, blank=False, unique=True)
     is_staff = models.BooleanField(_('staff status'), default=False)
     is_active = models.BooleanField(_('active'), default=True)
 
@@ -53,19 +53,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
     
     def save(self, *args, **kwargs):
-        role = self.role
-        team = self.team
-        if self.is_staff is True and not self.role:
-            role = 'admin'
-        else:
-            if not self.role:
-                role = 'blogger'
-            if not self.team:
-                team, created = Team.objects.get_or_create(name= 'default_team') 
-
-        self.team=team
-        self.role=role
-
         try:
             identify_hasher(self.password) 
         except ValueError:

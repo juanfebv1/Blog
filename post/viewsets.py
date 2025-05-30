@@ -1,7 +1,9 @@
+
+from django.shortcuts import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
-from .serializers import PostSerializer, LikeSerializer
+from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from .models import Post, Like, Comment
-from .permissions import PostPermissions
+from .permissions import PostPermissions, LikeAndCommentPermissions
 from .filters import PostAccessFilter
 from django.db.models import Q
 from rest_framework.decorators import action
@@ -9,19 +11,20 @@ from rest_framework import status, filters
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
+from .pagination import LikePagination, PostCommentsPagination
 
 
 class PostViewSet(ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [PostPermissions]
+    pagination_class = PostCommentsPagination
     
     def get_queryset(self):
-        return PostAccessFilter.get_accessible_posts_for(user=self.request.user)
+        return PostAccessFilter.get_accessible_posts_for(user=self.request.user).order_by('-posted_on')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
 
     def get_excerpt(self, request, pk=None):
         pass
@@ -62,23 +65,30 @@ class LikeViewSet(ModelViewSet):
     serializer_class = LikeSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['user', 'post']
+    permission_classes = [LikeAndCommentPermissions]
+    pagination_class = LikePagination
+
 
     def get_queryset(self):
         accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
         return Like.objects.filter(post__in=accesible_posts).select_related('post', 'user')
     
 
-        
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
-# class CommentViewSet(ModelViewSet):
-#     queryset = Comment.objects.all()
-#     serializer_class = CommentSerializer
-#     filter_backends = [DjangoFilterBackend]
-#     filterset_fields = ['user', 'post']
-    
-    
-#     def get_queryset(self):
-#         accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
-#         return Comment.objects.filter(post__in=accesible_posts).select_related('post', 'user')
 
+class CommentViewSet(ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['user', 'post']
+    permission_classes = [LikeAndCommentPermissions]
+    pagination_class = PostCommentsPagination
     
+    def get_queryset(self):
+        accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
+        return Comment.objects.filter(post__in=accesible_posts).select_related('post', 'user')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
