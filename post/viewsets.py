@@ -1,16 +1,13 @@
 
-from django.shortcuts import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from .models import Post, Like, Comment
 from .permissions import PostPermissions, LikeAndCommentPermissions
 from .filters import PostAccessFilter
-from django.db.models import Q
 from rest_framework.decorators import action
-from rest_framework import status, filters
+from rest_framework import status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import IsAuthenticated
 from .pagination import LikePagination, PostCommentsPagination
 
 
@@ -24,10 +21,15 @@ class PostViewSet(ModelViewSet):
         return PostAccessFilter.get_accessible_posts_for(user=self.request.user).order_by('-posted_on')
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        content = serializer.validated_data.get("content")
+        excerpt = content[:200] if content else ""
+        serializer.save(author=self.request.user, excerpt=excerpt)
 
-    def get_excerpt(self, request, pk=None):
-        pass
+    def perform_update(self, serializer):
+        content = serializer.validated_data.get("content")
+        excerpt = content[:200] if content else ""
+        serializer.save(author=self.request.user, excerpt=excerpt)
+
 
     @action(['POST'], detail=True, url_path='like-post')
     def like_post(self, request, pk=None):
@@ -92,3 +94,6 @@ class CommentViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+    

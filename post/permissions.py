@@ -3,13 +3,11 @@ from rest_framework import permissions
 
 class PostPermissions(permissions.BasePermission):
     def has_permission(self, request, view):
-        # Allow all authenticated users for like/unlike actions
-        if view.action in ['like_post', 'unlike_post']:
-            return request.user and request.user.is_authenticated
 
         # Default: restrict unsafe methods to authenticated users
         if request.method in permissions.SAFE_METHODS:
             return True
+        
         return request.user and request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):

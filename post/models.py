@@ -5,6 +5,7 @@ class Post(models.Model):
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     content = models.TextField()
+    excerpt = models.TextField()
     posted_on = models.DateTimeField(auto_now_add=True)
 
     permission_choices = (
@@ -16,6 +17,7 @@ class Post(models.Model):
     team_permission = models.PositiveSmallIntegerField(choices=permission_choices, default=0)
     public_permission = models.BooleanField(default=False)
 
+    
 
 
     def __str__(self):

@@ -9,6 +9,7 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         fields = ['id', 'title', 'content', 'username', 'posted_on', 'authenticated_permission','team_permission','public_permission']
 
+
     def validate(self, attrs):
         authenticated_permission = attrs.get('authenticated_permission', 0)
         team_permission = attrs.get('team_permission', 0)
@@ -23,6 +24,8 @@ class PostSerializer(serializers.ModelSerializer):
         attrs['authenticated_permission'] = authenticated_permission
         attrs['team_permission'] = team_permission
         return super().validate(attrs)
+    
+
 
 
 
