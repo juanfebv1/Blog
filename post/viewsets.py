@@ -11,7 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .pagination import LikePagination, PostCommentsPagination
 
 
-class PostViewSet(ModelViewSet):
+class PostViewSet(ModelViewSet):   
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [PostPermissions]
@@ -28,7 +28,7 @@ class PostViewSet(ModelViewSet):
     def perform_update(self, serializer):
         content = serializer.validated_data.get("content")
         excerpt = content[:200] if content else ""
-        serializer.save(author=self.request.user, excerpt=excerpt)
+        serializer.save(excerpt=excerpt)
 
 
     @action(['POST'], detail=True, url_path='like-post')

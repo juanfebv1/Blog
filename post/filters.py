@@ -4,7 +4,7 @@ from django.db.models import Q
 class PostAccessFilter:
     def get_accessible_posts_for(user):
         # Anonymous users see only public posts
-        if user.is_anonymous:
+        if not user.is_authenticated or user.is_anonymous:
             return Post.objects.filter(public_permission=True)
 
         # Admins can see everything

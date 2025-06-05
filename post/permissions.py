@@ -3,12 +3,11 @@ from rest_framework import permissions
 
 class PostPermissions(permissions.BasePermission):
     def has_permission(self, request, view):
+        if request.method == 'POST':
+            return request.user and request.user.is_authenticated
 
-        # Default: restrict unsafe methods to authenticated users
-        if request.method in permissions.SAFE_METHODS:
-            return True
+        return True
         
-        return request.user and request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
         # Allow like/unlike even if write permissions are not granted,
