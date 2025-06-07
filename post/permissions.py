@@ -50,36 +50,27 @@ class PostPermissions(permissions.BasePermission):
 
 class LikeAndCommentPermissions(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.method == 'POST':
-            post_id = request.data.get('post')
-            user = request.user
-            if not post_id or not user or not user.is_authenticated:
-                return False
 
-            try:
-                post = Post.objects.get(id=post_id)
-            except Post.DoesNotExist:
-                return False
+        if request.method in permissions.SAFE_METHODS:
+            return True
 
-            permission = PostPermissions()
-            return permission.has_read_access(user,post)
-
-        return True
-
+   
+        return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
         user = request.user
         post_like = obj.post
         user_like = obj.user
 
-        if post_like is None or user_like is None:
-            return False
-
         permission = PostPermissions()
+
         if request.method in permissions.SAFE_METHODS:
+            # Allow viewing likes if the user (even anonymous) can view the post
             return permission.has_read_access(user, post_like)
+
         elif request.method == 'DELETE':
-            return user.role == 'admin' or user == user_like
-        else:
-            return False
+            # Only the owner or an admin can delete a like
+            return user.is_authenticated and (user.role == 'admin' or user == user_like)
+
+        return False
 

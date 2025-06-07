@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from .pagination import LikePagination, PostCommentsPagination
+from rest_framework.exceptions import NotFound, PermissionDenied, ParseError
 
 
 class PostViewSet(ModelViewSet):   
@@ -69,16 +70,23 @@ class LikeViewSet(ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['user', 'post']
     permission_classes = [LikeAndCommentPermissions]
-    pagination_class = LikePagination
+    #pagination_class = LikePagination
 
 
     def get_queryset(self):
         accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
         return Like.objects.filter(post__in=accesible_posts).select_related('post', 'user')
     
-
     def perform_create(self, serializer):
+        post = serializer.validated_data['post']
+        user = self.request.user
+
+        permission = PostPermissions()
+        if not permission.has_read_access(user, post):
+            raise PermissionDenied("You do not have permission to like this post.")
+        
         serializer.save(user=self.request.user)
+
 
 
 class CommentViewSet(ModelViewSet):
