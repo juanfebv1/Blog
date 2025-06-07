@@ -65,6 +65,7 @@ class PostViewSet(ModelViewSet):
 class LikeViewSet(ModelViewSet):
     queryset = Like.objects.all()
     serializer_class = LikeSerializer
+    http_method_names = ['get', 'head', 'post', 'delete']
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['user', 'post']
     permission_classes = [LikeAndCommentPermissions]

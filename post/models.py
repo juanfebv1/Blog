@@ -23,7 +23,7 @@ class Post(models.Model):
 
 class Like(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, related_name='likes')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, null=True, related_name='likes')
     liked_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -34,4 +34,6 @@ class Comment(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')
     comment = models.TextField()
     commented_at = models.DateTimeField(auto_now_add=True)
+
+
 

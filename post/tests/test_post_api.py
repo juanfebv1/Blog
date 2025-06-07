@@ -69,4 +69,3 @@ def defaultTeamClient(defaultTeamUser):
     client = APIClient()
     client.force_authenticate(user=defaultTeamUser)
     return client
-

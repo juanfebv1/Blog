@@ -50,36 +50,36 @@ class PostPermissions(permissions.BasePermission):
 
 class LikeAndCommentPermissions(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         if request.method == 'POST':
             post_id = request.data.get('post')
-            if not post_id:
+            user = request.user
+            if not post_id or not user or not user.is_authenticated:
                 return False
+
             try:
                 post = Post.objects.get(id=post_id)
             except Post.DoesNotExist:
                 return False
 
             permission = PostPermissions()
-            return permission.has_read_access(request.user, post)
+            return permission.has_read_access(user,post)
 
-        # Other unsafe methods: must be authenticated
-        return request.user.is_authenticated
+        return True
+
 
     def has_object_permission(self, request, view, obj):
-        post = getattr(obj, 'post', None)
         user = request.user
-        user_like = getattr(obj, 'user', None)
+        post_like = obj.post
+        user_like = obj.user
 
-        if post is None or user_like is None:
+        if post_like is None or user_like is None:
             return False
 
         permission = PostPermissions()
         if request.method in permissions.SAFE_METHODS:
-            return permission.has_read_access(user, post)
-        elif request.method in ['PUT','PATCH', 'DELETE']:
-            return user.role == 'admin' or (permission.has_read_access(user, post) and user == user_like)
+            return permission.has_read_access(user, post_like)
+        elif request.method == 'DELETE':
+            return user.role == 'admin' or user == user_like
         else:
             return False
 

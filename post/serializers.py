@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Post, Like, Comment
+from rest_framework.validators import ValidationError
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -33,10 +34,19 @@ class LikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Like
         fields = '__all__'
+    
+    def validate(self, data):
+        user = self.context['request'].user
+        post = data['post']
+
+        if Like.objects.filter(post=post, user=user).exists():
+            raise ValidationError("You already liked the post")
+
+        return data
 
 class CommentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['id', 'post', 'username', 'comment']
+        fields = ['id', 'post', 'username', 'comment'] 
