@@ -8,7 +8,6 @@ class PostPermissions(permissions.BasePermission):
 
         return True
         
-
     def has_object_permission(self, request, view, obj):
         # Allow like/unlike even if write permissions are not granted,
         # as long as the user has read access
@@ -53,24 +52,23 @@ class LikeAndCommentPermissions(permissions.BasePermission):
 
         if request.method in permissions.SAFE_METHODS:
             return True
-
-   
+        
         return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        post_like = obj.post
-        user_like = obj.user
+        post_object = obj.post
+        user_object = obj.user
 
         permission = PostPermissions()
 
         if request.method in permissions.SAFE_METHODS:
             # Allow viewing likes if the user (even anonymous) can view the post
-            return permission.has_read_access(user, post_like)
+            return permission.has_read_access(user, post_object)
 
         elif request.method == 'DELETE':
             # Only the owner or an admin can delete a like
-            return user.is_authenticated and (user.role == 'admin' or user == user_like)
+            return user.is_authenticated and (user.role == 'admin' or user == user_object)
 
         return False
 

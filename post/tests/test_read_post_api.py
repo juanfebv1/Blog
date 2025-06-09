@@ -468,6 +468,32 @@ class TestReadDetailPost:
         response = teamAClient.get(f"/api/posts/{post.id}/")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_post_deletes_if_user_deletes(self, defaultTeamClient):
+        user = User.objects.create_user(
+            email="test@email.com",
+            password="123",
+            username="test"
+        )
+        post = Post.objects.create(
+            author=user,
+            title="A",
+            content="B",
+            public_permission = True
+        )
+        post_id = post.id
+        response = defaultTeamClient.get(f"/api/posts/{post_id}/")
+        assert response.status_code == status.HTTP_200_OK
+
+        user.delete()
+
+        assert not Post.objects.filter(id=post_id).exists()
+
+        response = defaultTeamClient.get(f"/api/posts/{post_id}/")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+        
+
+
 
 
 @pytest.fixture

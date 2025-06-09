@@ -320,11 +320,243 @@ class TestLikeList:
                 likesIShouldSee.append(like.id) 
 
 
+        response = defaultTeamClient.get("/api/likes/?page_size=100")
+        assert response.status_code == status.HTTP_200_OK
+
+        likes = [like['id'] for like in response.data['results']]
+        assert sorted(likes) == sorted(likesIShouldSee)
+
+    def test_list_empty_if_no_visible_posts(self, defaultTeamClient, teamAUser):
+        teamA = Team.objects.get(name="Team A")
+        anotherTeamAUser = User.objects.create_user(
+            username="atau", email = "atau@email.com", password="123", team=teamA
+        )
+        post = Post.objects.create(
+            author = teamAUser,
+            title = "A",
+            content = "B",
+            authenticated_permission=0,
+            team_permission = 1
+        )
+        like = Like.objects.create(user=anotherTeamAUser, post=post)
+
+        response = defaultTeamClient.get("/api/likes/")
+        assert response.status_code == status.HTTP_200_OK
+        assert [like['id'] for like in response.data['results']] == []
+
+    def test_list_pagination_respected(self, defaultTeamClient, teamAUser, teamBUser):
+        def create_post_with_like(author_post, auth_perm, team_perm, public_perm, author_like):
+            post = Post.objects.create(
+                author=author_post,
+                title=f"Post by {author_post.username}",
+                content="Some content",
+                authenticated_permission=auth_perm,
+                team_permission=team_perm,
+                public_permission=public_perm
+            )
+            return Like.objects.create(user=author_like, post=post)
+
+        for i in range(30):
+            like = create_post_with_like(
+                author_post=teamAUser, 
+                auth_perm=1,
+                team_perm=1,
+                public_perm=0,
+                author_like=teamBUser
+            )
         response = defaultTeamClient.get("/api/likes/")
         assert response.status_code == status.HTTP_200_OK
 
-        likes = [like['id'] for like in response.data]
-        assert sorted(likes) == sorted(likesIShouldSee)
+        expected_page_size = 20
+        assert len(response.data['results']) == 20
+        
+    def test_filters_by_post(self, defaultTeamClient, defaultTeamUser, teamAUser, teamBUser):
+        post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            public_permission = True
+        )
+        likes_from_post = []
+        # Own like
+        like = Like.objects.create(user=defaultTeamUser, post=post)
+        likes_from_post.append(like.id)
+
+        #Like by teamAUser
+        like = Like.objects.create(user=teamAUser, post=post)
+        likes_from_post.append(like.id)
+
+        # Like by teamBUser
+        like = Like.objects.create(user=teamBUser, post=post)
+        likes_from_post.append(like.id)
+
+        # Likes in another post
+        another_post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            public_permission = True
+        )
+        # Own like
+        like = Like.objects.create(user=defaultTeamUser, post=another_post)
+
+        #Like by teamAUser
+        like = Like.objects.create(user=teamAUser, post=another_post)
+
+        # Like by teamBUser
+        like = Like.objects.create(user=teamBUser, post=another_post)
+
+        response = defaultTeamClient.get(f"/api/likes/?post={post.id}")
+        assert response.status_code == status.HTTP_200_OK
+
+        retrieved_likes = [like['id'] for like in response.data['results']]
+        assert sorted(retrieved_likes) == sorted(likes_from_post)
+
+    def test_404_if_filter_by_non_existing_post(self, defaultTeamClient, teamAUser):
+        for i in range(30):
+            Post.objects.create(
+                author = teamAUser,
+                title= "A",
+                content= "B",
+                public_permission = 1
+            )
+        post = Post.objects.create(
+            author = teamAUser,
+            title= "A",
+            content= "B",
+            public_permission = 1
+        )
+        post_id = post.id
+        post.delete()
+        response = defaultTeamClient.get(f"/api/likes/?post={post_id}")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.data['detail'].lower()
+
+    def test_404_if_filter_by_non_allowed_post(self, defaultTeamClient, teamAUser):
+        post = Post.objects.create(
+            author = teamAUser,
+            title= "A",
+            content= "B",
+            team_permission = 1
+        )
+        like = Like.objects.create(user=teamAUser, post=post)
+
+        response = defaultTeamClient.get(f"/api/likes/?post={post.id}")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.data['detail'].lower()
+
+    def test_filters_by_user(self, defaultTeamClient, defaultTeamUser, teamAUser, teamBUser):
+        post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            public_permission = True
+        )
+        likes_from_teamAUser = []
+        # Own like
+        like = Like.objects.create(user=defaultTeamUser, post=post)
+
+        #Like by teamAUser
+        like = Like.objects.create(user=teamAUser, post=post)
+        likes_from_teamAUser.append(like.id)
+
+        # Like by teamBUser
+        like = Like.objects.create(user=teamBUser, post=post)
+
+        # Likes in another post
+        another_post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            authenticated_permission = 1
+        )
+        # Own like
+        like = Like.objects.create(user=defaultTeamUser, post=another_post)
+
+        #Like by teamAUser
+        like = Like.objects.create(user=teamAUser, post=another_post)
+        likes_from_teamAUser.append(like.id)
+
+        # Like by teamBUser
+        like = Like.objects.create(user=teamBUser, post=another_post)
+
+        response = defaultTeamClient.get(f"/api/likes/?user={teamAUser.id}")
+        assert response.status_code == status.HTTP_200_OK
+
+        retrieved_likes = [like['id'] for like in response.data['results']]
+        assert sorted(retrieved_likes) == sorted(likes_from_teamAUser)
+        
+    def test_404_if_filter_by_non_existing_user(self, defaultTeamClient, teamAUser):
+        user = User.objects.create_user(username="testuser", password="123", email="test@email.com")
+        user_id = user.id
+        user.delete()
+
+        response = defaultTeamClient.get(f"/api/likes/?user={user_id}")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.data['detail'].lower()
+
+    def test_filter_by_post_and_user(self, defaultTeamClient, defaultTeamUser, teamAUser, teamBUser):
+        post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            public_permission = True
+        )
+
+        # Own like
+        Like.objects.create(user=defaultTeamUser, post=post)
+
+        #Like by teamAUser
+        like = Like.objects.create(user=teamAUser, post=post)
+
+
+        # Like by teamBUser
+        Like.objects.create(user=teamBUser, post=post)
+
+        # Likes in another post
+        another_post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            public_permission = True
+        )
+        # Own like
+        Like.objects.create(user=defaultTeamUser, post=another_post)
+
+        #Like by teamAUser
+        Like.objects.create(user=teamAUser, post=another_post)
+
+        # Like by teamBUser
+        Like.objects.create(user=teamBUser, post=another_post)
+
+        response = defaultTeamClient.get(f"/api/likes/?post={post.id}&user={teamAUser.id}")
+        assert response.status_code == status.HTTP_200_OK
+
+        assert response.data['total count'] == 1
+
+        retrieved_like = response.data['results'][0]
+        assert retrieved_like['id'] == like.id
+
+    def test_like_deletes_if_post_deletes(self, defaultTeamClient, teamAUser, teamBUser):
+        post = Post.objects.create(
+            author=teamAUser,
+            title="A",
+            content="B",
+            authenticated_permission = 1
+        )
+        like = Like.objects.create(user=teamBUser, post=post)
+        like_id = like.id
+
+        response = defaultTeamClient.get(f"/api/likes/{like_id}/")
+        assert response.status_code == status.HTTP_200_OK
+
+        post.delete()
+
+        assert not Like.objects.filter(id=like_id).exists()
+        response = defaultTeamClient.get(f"/api/likes/{like_id}/")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 
 @pytest.fixture

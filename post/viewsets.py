@@ -3,7 +3,8 @@ from rest_framework.viewsets import ModelViewSet
 from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from .models import Post, Like, Comment
 from .permissions import PostPermissions, LikeAndCommentPermissions
-from .filters import PostAccessFilter
+from .filters import PostAccessFilter, LikeFilter, get_queryset_aux
+from user.models import CustomUser as User
 from rest_framework.decorators import action
 from rest_framework import status
 from rest_framework.response import Response
@@ -67,15 +68,11 @@ class LikeViewSet(ModelViewSet):
     queryset = Like.objects.all()
     serializer_class = LikeSerializer
     http_method_names = ['get', 'head', 'post', 'delete']
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['user', 'post']
     permission_classes = [LikeAndCommentPermissions]
-    #pagination_class = LikePagination
-
+    pagination_class = LikePagination
 
     def get_queryset(self):
-        accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
-        return Like.objects.filter(post__in=accesible_posts).select_related('post', 'user')
+        return get_queryset_aux(self.request, Like)
     
     def perform_create(self, serializer):
         post = serializer.validated_data['post']
@@ -92,16 +89,20 @@ class LikeViewSet(ModelViewSet):
 class CommentViewSet(ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['user', 'post']
+    http_method_names = ['get', 'head', 'post', 'delete']
     permission_classes = [LikeAndCommentPermissions]
     pagination_class = PostCommentsPagination
     
     def get_queryset(self):
-        accesible_posts = PostAccessFilter.get_accessible_posts_for(user=self.request.user)
-        return Comment.objects.filter(post__in=accesible_posts).select_related('post', 'user')
+        return get_queryset_aux(self.request, Comment)
 
     def perform_create(self, serializer):
+        post = serializer.validated_data['post']
+        user = self.request.user
+
+        permission = PostPermissions()
+        if not permission.has_read_access(user, post):
+            raise PermissionDenied("You do not have permission to comment this post.")
         serializer.save(user=self.request.user)
 
 

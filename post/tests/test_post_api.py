@@ -7,14 +7,14 @@ from rest_framework import status
 
 @pytest.mark.django_db
 def test_post_created_success(defaultTeamClient, defaultTeamUser):
-    possibilities = [
+    choices = [
         {'authenticated_permission' : i, 'team_permission' : j, 'public_permission' : k}  
         for i in {0,1,2} 
         for j in {0,1,2}
         for k in {True, False}
     ]
 
-    for i, perms in enumerate(possibilities):
+    for perms in choices:
         payload = {
             'title' : 'TestPost',
             'content' : 'TestLorem',
