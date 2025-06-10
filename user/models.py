@@ -54,9 +54,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     
     def save(self, *args, **kwargs):
         if not self.team:
-            team,_ = Team.objects.get_or_create(name="default_team")
-            self.team = team
-
+            self.team = Team.objects.get_or_create(name="default_team")[0]
         try:
             identify_hasher(self.password) 
         except ValueError:

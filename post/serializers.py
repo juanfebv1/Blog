@@ -1,9 +1,6 @@
 from rest_framework import serializers
 from .models import Post, Like, Comment
 from rest_framework.validators import ValidationError
-from .permissions import PostPermissions
-
-
 
 class PostSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='author.username', read_only=True)
@@ -28,10 +25,6 @@ class PostSerializer(serializers.ModelSerializer):
         attrs['team_permission'] = team_permission
         return super().validate(attrs)
     
-
-
-
-
 class LikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Like

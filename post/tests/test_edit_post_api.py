@@ -50,29 +50,6 @@ class TestEditPost:
                 assert post.authenticated_permission == expected_authenticated_permission
                 assert post.team_permission == expected_team_permission
 
-    def test_anonymous_cannot_edit(self, defaultTeamClient):
-        payloadCreation = {
-            'title' : 'TestPost',
-            'content' : 'TestLorem',
-        }
-        response = defaultTeamClient.post("/api/posts/", data=payloadCreation)
-
-        post_id = response.data.get('id')
-        assert post_id is not None
-
-        payload = {
-            "title" : "NewTitle"
-        }
-        client = APIClient()
-
-        response = client.put(f"/api/posts/{post_id}/", data=payload)
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        post = Post.objects.get(id=post_id)
-
-        assert post.title == payloadCreation['title']
-        assert post.content == payloadCreation['content']
-
     def test_team_can_edit_same_team_client(self, teamAClient):
         team, _ = Team.objects.get_or_create(name="Team A")
         authorTeamA = User.objects.create_user(

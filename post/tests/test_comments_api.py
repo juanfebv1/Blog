@@ -545,9 +545,77 @@ class TestCommentList:
         assert sorted(retrieved_comments) == sorted(comments_from_teamAUser)
 
 
+    def test_404_if_filter_by_non_existing_user(self, defaultTeamClient, teamAUser):
+        user = User.objects.create_user(username="testuser", password="123", email="test@email.com")
+        user_id = user.id
+        user.delete()
+
+        response = defaultTeamClient.get(f"/api/comments/?user={user_id}")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        detail = response.data['detail'].lower()
+        assert "not found" in detail and "user" in detail
+
+    def test_filter_by_post_and_user(self, defaultTeamClient, defaultTeamUser, teamAUser, teamBUser):
+        post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            public_permission = True
+        )
+
+        # Own comment
+        Comment.objects.create(user=defaultTeamUser, post=post)
+
+        #Like by teamAUser
+        comment = Comment.objects.create(user=teamAUser, post=post)
 
 
+        # Comment by teamBUser
+        Comment.objects.create(user=teamBUser, post=post)
 
+        # Comments in another post
+        another_post = Post.objects.create(
+            author=defaultTeamUser,
+            title="A",
+            content = "B", 
+            public_permission = True
+        )
+        # Own comment
+        Comment.objects.create(user=defaultTeamUser, post=another_post)
+
+        #Like by teamAUser
+        Comment.objects.create(user=teamAUser, post=another_post)
+
+        # Like by teamBUser
+        Comment.objects.create(user=teamBUser, post=another_post)
+
+        response = defaultTeamClient.get(f"/api/comments/?post={post.id}&user={teamAUser.id}")
+        assert response.status_code == status.HTTP_200_OK
+
+        assert response.data['total count'] == 1
+
+        retrieved_comment = response.data['results'][0]
+        assert retrieved_comment['id'] == comment.id
+
+    def test_comment_deletes_if_post_deletes(self, defaultTeamClient, teamAUser, teamBUser):
+        post = Post.objects.create(
+            author=teamAUser,
+            title="A",
+            content="B",
+            authenticated_permission = 1
+        )
+        comment = Comment.objects.create(user=teamBUser, post=post)
+        comment_id = comment.id
+
+        response = defaultTeamClient.get(f"/api/comments/{comment_id}/")
+        assert response.status_code == status.HTTP_200_OK
+
+        post.delete()
+
+        assert not Comment.objects.filter(id=comment_id).exists()
+        response = defaultTeamClient.get(f"/api/comments/{comment_id}/")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "comment" in response.data['detail'].lower()
 
 @pytest.fixture
 def defaultTeamUser(db):

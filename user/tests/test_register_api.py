@@ -59,7 +59,6 @@ class TestRegister:
         assert response.status_code==status.HTTP_400_BAD_REQUEST
         assert "username" in response.data
 
-                
     def test_missing_email(self):
         payload = {
             "username" : "testuser",
@@ -82,7 +81,6 @@ class TestRegister:
 
             assert response.status_code==status.HTTP_400_BAD_REQUEST
             assert "email" in response.data
-
 
     def test_missing_username(self):
         payload = {
@@ -120,7 +118,18 @@ class TestRegister:
         hasher = identify_hasher(password)
         assert hasher is not None
 
-
+    def test_logged_client_cannot_register(self):
+        user = User.objects.create_user(email="dftu@email.com", username="dftu",password="dftu")
+        client = APIClient()
+        client.force_authenticate(user=user)
+        payload = {
+            "email" : "test@example.com",
+            "username" : "testuser",
+            "password" : "test_password",
+        }
+        response = client.post("/api/register/", data=payload)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "already" in response.data['detail']
 
     
 

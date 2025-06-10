@@ -7,7 +7,7 @@ from user.models import CustomUser as User
 class PostAccessFilter:
     def get_accessible_posts_for(user):
         # Anonymous users see only public posts
-        if not user.is_authenticated or user.is_anonymous:
+        if not user.is_authenticated:
             return Post.objects.filter(public_permission=True)
 
         # Admins can see everything
@@ -22,14 +22,6 @@ class PostAccessFilter:
             Q(public_permission=True)
         ).distinct()
     
-
-class LikeFilter(filters.FilterSet):
-    post = filters.NumberFilter(field_name='post_id')
-    user = filters.NumberFilter(field_name='user_id')
-
-    class Meta:
-        model = Like
-        fields = ['user', 'post']
 
 def get_queryset_aux(request, CLASS):
     accesible_posts = PostAccessFilter.get_accessible_posts_for(user=request.user)

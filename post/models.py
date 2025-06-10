@@ -3,8 +3,8 @@ from user.models import CustomUser
 
 class Post(models.Model):
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
-    content = models.TextField()
+    title = models.CharField(max_length=200, blank=False)
+    content = models.TextField(blank=False)
     excerpt = models.TextField()
     posted_on = models.DateTimeField(auto_now_add=True)
 

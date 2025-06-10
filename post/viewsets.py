@@ -1,16 +1,11 @@
-
 from rest_framework.viewsets import ModelViewSet
 from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from .models import Post, Like, Comment
 from .permissions import PostPermissions, LikeAndCommentPermissions
-from .filters import PostAccessFilter, LikeFilter, get_queryset_aux
-from user.models import CustomUser as User
-from rest_framework.decorators import action
-from rest_framework import status
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
+from .filters import PostAccessFilter, get_queryset_aux
+
 from .pagination import LikePagination, PostCommentsPagination
-from rest_framework.exceptions import NotFound, PermissionDenied, ParseError
+from rest_framework.exceptions import PermissionDenied
 
 
 class PostViewSet(ModelViewSet):   
@@ -33,37 +28,6 @@ class PostViewSet(ModelViewSet):
         serializer.save(excerpt=excerpt)
 
 
-    @action(['POST'], detail=True, url_path='like-post')
-    def like_post(self, request, pk=None):
-        user = request.user
-        if not user or not user.is_authenticated:
-            return Response({"message" : "You must be authenticated to like"},status=status.HTTP_403_FORBIDDEN)
-        
-        post = self.get_object()
-        _, created = Like.objects.get_or_create(user=user, post=post)
-        if created:
-            return Response({"message" : f"Like by {user.username} on post."}, status.HTTP_201_CREATED)
-        else:
-            return Response({"message" : f"User {user.username} already liked the post."}, status=status.HTTP_200_OK)
-        
-    @action(['POST'], detail=True, url_path='unlike-post')
-    def unlike_post(self,request, pk=None):
-        user = request.user
-        if not user or not user.is_authenticated:
-            return Response({"message" : "You must be authenticated to like"},status=status.HTTP_403_FORBIDDEN)
-
-        post = self.get_object()
-        deleted, _ = Like.objects.filter(user=user, post=post).delete()
-
-        if deleted:
-            message = f"Like by {user.username} deleted."
-        else:
-            message = f"Like by {user.username} does not exist."
-
-        return Response({"message": message}, status=status.HTTP_204_NO_CONTENT)
-
-
-
 class LikeViewSet(ModelViewSet):
     queryset = Like.objects.all()
     serializer_class = LikeSerializer
@@ -83,7 +47,6 @@ class LikeViewSet(ModelViewSet):
             raise PermissionDenied("You do not have permission to like this post.")
         
         serializer.save(user=self.request.user)
-
 
 
 class CommentViewSet(ModelViewSet):
