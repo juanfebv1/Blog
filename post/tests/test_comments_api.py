@@ -466,7 +466,6 @@ class TestCommentList:
         retrieved_Comments = [Comment['id'] for Comment in response.data['results']]
         assert sorted(retrieved_Comments) == sorted(comments_from_post)
 
-
     def test_404_if_filter_by_non_existing_post(self, defaultTeamClient, teamAUser):
         for i in range(30):
             Post.objects.create(
@@ -488,7 +487,6 @@ class TestCommentList:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in response.data['detail'].lower()
 
-
     def test_404_if_filter_by_non_allowed_post(self, defaultTeamClient, teamAUser):
         post = Post.objects.create(
             author = teamAUser,
@@ -499,9 +497,8 @@ class TestCommentList:
         comment = Comment.objects.create(user=teamAUser, post=post, content="Lorem")
 
         response = defaultTeamClient.get(f"/api/comments/?post={post.id}")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "not found" in response.data['detail'].lower()
-
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "inaccessible" in response.data['detail'].lower()
 
     def test_filters_by_user(self, defaultTeamClient, defaultTeamUser, teamAUser, teamBUser):
         post = Post.objects.create(
@@ -543,7 +540,6 @@ class TestCommentList:
 
         retrieved_comments = [comment['id'] for comment in response.data['results']]
         assert sorted(retrieved_comments) == sorted(comments_from_teamAUser)
-
 
     def test_404_if_filter_by_non_existing_user(self, defaultTeamClient, teamAUser):
         user = User.objects.create_user(username="testuser", password="123", email="test@email.com")
@@ -592,7 +588,7 @@ class TestCommentList:
         response = defaultTeamClient.get(f"/api/comments/?post={post.id}&user={teamAUser.id}")
         assert response.status_code == status.HTTP_200_OK
 
-        assert response.data['total count'] == 1
+        assert response.data['count'] == 1
 
         retrieved_comment = response.data['results'][0]
         assert retrieved_comment['id'] == comment.id

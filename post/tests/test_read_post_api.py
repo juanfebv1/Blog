@@ -57,28 +57,6 @@ class TestReadListPost:
         posts = [post["id"] for post in response.data["results"]]
         assert sorted(posts) == sorted(public_posts)
 
-    def test_anonymous_cannot_read_non_public_post(self, defaultTeamUser):
-        choices = [
-            {'authenticated_permission' : i, 'team_permission' : j} 
-            for i in {0,1,2}
-            for j in {0,1,2}
-        ]
-
-        for choice in choices:
-            post = Post.objects.create(
-                author = defaultTeamUser,
-                title = "TestTitle",
-                content = "TestContent",
-                public_permission = False,
-                authenticated_permission = choice['authenticated_permission'],
-                team_permission = choice['team_permission']
-            )
-
-            client = APIClient()
-            response = client.get(f"/api/posts/{post.id}/")
-
-            assert response.status_code == status.HTTP_404_NOT_FOUND
-
     def test_same_team_posts(self, teamAUser, teamAClient, defaultTeamUser):
         teamA, _ = Team.objects.get_or_create(name="Team A")
         postShouldISee = []
@@ -312,7 +290,7 @@ class TestReadListPost:
         response = defaultTeamClient.get("/api/posts/")
         posts = [post['id'] for post in response.data['results']]
         expected_pagination = 10
-        assert response.data["total count"] == 100
+        assert response.data["count"] == 100
         assert response.data["next page"] is not None
         assert len(posts) == expected_pagination
 
@@ -428,7 +406,7 @@ class TestReadDetailPost:
             client = APIClient()
             response = client.get(f"/api/posts/{post.id}/")
 
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_authenticated_cannot_read_only_team_post(self, teamAUser, teamBClient):
         for i in {0,1,2}:
@@ -440,7 +418,7 @@ class TestReadDetailPost:
             )
 
             response = teamBClient.get(f"/api/posts/{post.id}/")
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_authenticated_cannot_read_private_post(self, teamAUser, defaultTeamClient):
         post = Post.objects.create(
@@ -451,7 +429,7 @@ class TestReadDetailPost:
         )
 
         response = defaultTeamClient.get(f"/api/posts/{post.id}/")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_team_member_cannot_read_private_post(self, teamAClient):
         teamA, _ = Team.objects.get_or_create(name="Team A")
@@ -466,7 +444,7 @@ class TestReadDetailPost:
         )
 
         response = teamAClient.get(f"/api/posts/{post.id}/")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_post_deletes_if_user_deletes(self, defaultTeamClient):
         user = User.objects.create_user(

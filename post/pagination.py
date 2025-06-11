@@ -6,8 +6,8 @@ def generate_paginated_response(response, data):
         'prev page' : response.get_previous_link(),
         'next page' : response.get_next_link(),
         'current page' : response.page.number,
-        'total pages' : response.page.paginator.num_pages,
-        'total count' : response.page.paginator.count,
+        'pages' : response.page.paginator.num_pages,
+        'count' : response.page.paginator.count,
         'results' : data
         })
 

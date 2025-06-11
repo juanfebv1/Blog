@@ -433,7 +433,7 @@ class TestLikeList:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in response.data['detail'].lower()
 
-    def test_404_if_filter_by_non_allowed_post(self, defaultTeamClient, teamAUser):
+    def test_403_if_filter_by_non_allowed_post(self, defaultTeamClient, teamAUser):
         post = Post.objects.create(
             author = teamAUser,
             title= "A",
@@ -443,8 +443,8 @@ class TestLikeList:
         like = Like.objects.create(user=teamAUser, post=post)
 
         response = defaultTeamClient.get(f"/api/likes/?post={post.id}")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "not found" in response.data['detail'].lower()
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "inaccessible" in response.data['detail'].lower()
 
     def test_filters_by_user(self, defaultTeamClient, defaultTeamUser, teamAUser, teamBUser):
         post = Post.objects.create(
@@ -533,7 +533,7 @@ class TestLikeList:
         response = defaultTeamClient.get(f"/api/likes/?post={post.id}&user={teamAUser.id}")
         assert response.status_code == status.HTTP_200_OK
 
-        assert response.data['total count'] == 1
+        assert response.data['count'] == 1
 
         retrieved_like = response.data['results'][0]
         assert retrieved_like['id'] == like.id

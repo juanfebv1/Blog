@@ -1,7 +1,7 @@
 from .models import Post, Like
 from django.db.models import Q
 from django_filters import rest_framework as filters
-from rest_framework.exceptions import NotFound, ParseError
+from rest_framework.exceptions import NotFound, ParseError, PermissionDenied
 from user.models import CustomUser as User
 
 class PostAccessFilter:
@@ -31,10 +31,12 @@ def get_queryset_aux(request, CLASS):
     if post_id is not None:
         if not post_id.isdigit():
             raise ParseError("Invalid post ID.")
+        if not Post.objects.filter(id=post_id).exists():
+            raise NotFound("Post not found")
         try:
             post = accesible_posts.get(pk=post_id)
         except (Post.DoesNotExist, ValueError):
-            raise NotFound("Post not found or inaccessible.")
+            raise PermissionDenied("Post inaccessible.")
         queryset = queryset.filter(post=post)
 
     user = request.query_params.get('user')

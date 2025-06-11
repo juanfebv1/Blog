@@ -51,7 +51,7 @@ class TestDeletePost:
         post = Post.objects.create(author=author, title="Title", content="Lorem", team_permission=2)
 
         response = defaultTeamClient.delete(f"/api/posts/{post.id}/")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Post.objects.filter(id=post.id).exists()
 
     def test_auth_can_delete_based_on_permission(self, defaultTeamClient):
@@ -75,7 +75,7 @@ class TestDeletePost:
     def test_anonymous_cannot_delete(self):
         author = User.objects.create_user(email="ta@email.com", username="ta", password="ta")
         options = [
-            {"public_permission": False, "expected_status": status.HTTP_404_NOT_FOUND},
+            {"public_permission": False, "expected_status": status.HTTP_403_FORBIDDEN},
             {"public_permission": True, "expected_status": status.HTTP_403_FORBIDDEN}
         ]
         for opt in options:

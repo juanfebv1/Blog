@@ -108,7 +108,7 @@ class TestEditPost:
         }
 
         response = defaultTeamClient.put(f"/api/posts/{post_id}/", data=payload)
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
         post.refresh_from_db()
         assert post.title == "Title"
@@ -166,7 +166,7 @@ class TestEditPost:
 
         response = defaultTeamClient.put(f"/api/posts/{post_id}/", data=payload)
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         
         post.refresh_from_db()
         assert post.title == "Title"
@@ -307,7 +307,7 @@ class TestEditPost:
             password="tau2",
         )
         choices = [
-            {"public_permission" : False, "status" : status.HTTP_404_NOT_FOUND},
+            {"public_permission" : False, "status" : status.HTTP_403_FORBIDDEN},
             {"public_permission" : True, "status" : status.HTTP_403_FORBIDDEN},
         ]
         for choice in choices:
